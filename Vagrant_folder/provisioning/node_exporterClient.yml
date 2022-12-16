@@ -1,0 +1,25 @@
+---
+- name: create dir
+  file:
+    path: /opt/node_exporter
+    state: directory
+
+- name:
+  get_url:
+    url: https://github.com/prometheus/node_exporter/releases/download/v1.2.2/node_exporter-1.2.2.linux-amd64.tar.gz
+    dest: /tmp/
+
+- name: Unarchive a node_exporter
+  unarchive:
+    src: /tmp/node_exporter-1.2.2.linux-amd64.tar.gz
+    dest: /tmp/
+    remote_src: yes
+
+- name: move node_exporter
+  shell: 'mv /tmp/node_exporter-1.2.2.linux-amd64/* /opt/node_exporter/'
+
+- name: Copy file to stark borg
+  copy: 
+    src: node_exporter.service
+    dest: /etc/systemd/system/node_exporter.service
+

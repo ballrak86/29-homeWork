@@ -1,0 +1,122 @@
+---
+# tasks file for web
+- name: Install epel
+  yum:
+    name:
+     - epel-release
+     - yum-utils
+    state: present
+
+- name: Add repository
+  yum:
+    name: http://rpms.remirepo.net/enterprise/remi-release-7.rpm
+    state: present
+
+- name: enable remi-php72
+  shell: yum-config-manager --enable remi-php72
+
+- name: install php72
+  yum:
+    name:
+      - nginx
+      - php-cli
+      - php-fpm
+      - php-mysql
+      - php-json
+      - php-opcache
+      - php-mbstring
+      - php-xml
+      - php-gd
+      - php-curl
+    state: present
+
+- name: change
+  lineinfile:
+    path: /etc/php-fpm.d/www.conf
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - { regexp: 'user = ', line: 'user = nginx' }
+    - { regexp: 'group = ', line: 'group = nginx' }
+    - { regexp: 'listen = ', line: 'listen = /run/php-fpm/www.sock' }
+    - { regexp: 'listen.owner = ', line: 'listen.owner = nginx' }
+    - { regexp: 'listen.group = ', line: 'listen.group = nginx' }
+
+- name: change owner
+  file:
+    path: /var/lib/php
+    state: directory
+    recurse: yes
+    owner: root
+    group: nginx
+
+- name: start php-fpm
+  systemd:
+    name: php-fpm
+    state: started
+    enabled: yes
+
+- name: Download woordpress
+  get_url:
+    url: https://wordpress.org/wordpress-6.0.2.tar.gz
+    dest: /tmp/
+
+- name: create dir
+  file:
+    path: /var/www/html/example.com/
+    state: directory
+
+- name: Unarchive a woordpress
+  unarchive:
+    src: /tmp/wordpress-6.0.2.tar.gz
+    dest: /tmp/
+    remote_src: yes
+
+- name: move woordpress
+  shell: 'mv /tmp/wordpress/* /var/www/html/example.com/'  
+
+- name: wp-config.php
+  template:
+    src: wp-config.php
+    dest: /var/www/html/example.com/
+    owner: nginx
+    group: nginx
+
+- name: change owner
+  file:
+    path: /var/www/html/example.com/
+    state: directory
+    recurse: yes
+    owner: nginx
+    group: nginx
+
+- name: create config
+  template:
+    src: nginx.conf
+    dest: /etc/nginx/nginx.conf
+  notify: restart nginx
+
+- name: create dir
+  file:
+    path: /etc/pki/nginx/
+    state: directory
+
+- name: copy key for nginx
+  copy:
+    src: "../{{ item }}"
+    dest: /etc/pki/nginx/
+    owner: nginx
+    group: nginx
+    mode: '0660'
+  loop:
+    - server.crt
+    - server.key
+
+- name: add example.com
+  lineinfile:
+    path: /etc/hosts
+    line: '127.0.0.1   example.com'
+
+- include: /home/lx/git/project_work/provisioning/borgClient.yml
+
+- include: /home/lx/git/project_work/provisioning/node_exporterClient.yml

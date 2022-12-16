@@ -1,0 +1,23 @@
+---
+# tasks file for router
+- name: enable ip_forward
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    sysctl_set: yes
+
+- name: nat to web
+  iptables_raw:
+    name: nat to web
+    table: nat
+    rules: |
+      -A PREROUTING -p tcp --dport 80 -j DNAT --to-destination 192.168.0.2:80
+      -A POSTROUTING -p tcp --dst 192.168.0.2 --dport 80 -j SNAT --to 192.168.0.5
+      -A PREROUTING -p tcp --dport 443 -j DNAT --to-destination 192.168.0.2:443
+      -A POSTROUTING -p tcp --dst 192.168.0.2 --dport 443 -j SNAT --to 192.168.0.5
+
+- include: /home/lx/git/project_work/provisioning/node_exporterClient.yml
+
+
+#      -A PREROUTING -p tcp --dport 8080 -j DNAT --to-destination 192.168.0.4:80
+#      -A POSTROUTING -p tcp --dst 192.168.0.4 --dport 80 -j SNAT --to 192.168.0.5

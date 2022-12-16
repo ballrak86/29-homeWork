@@ -1,0 +1,23 @@
+---
+- hosts: router
+  become: true
+  roles:
+     - router
+
+- hosts: mysql
+  become: true
+  roles:
+     - common
+     - mysql
+
+- hosts: web
+  become: true
+  roles:
+     - common
+     - web
+
+- hosts: backup
+  become: true
+  roles:
+     - common
+     - backup

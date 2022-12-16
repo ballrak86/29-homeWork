@@ -1,0 +1,67 @@
+- name: Install epel
+  yum:
+    name: epel-release
+    state: present
+
+- name: Install borg
+  yum:
+    name: borgbackup
+    state: present
+
+- block:
+  - name: create ssh key to root
+    user:
+      name: root
+      generate_ssh_key: yes
+
+  - name: Copy sert
+    fetch:
+      src: /root/.ssh/{{ item }}
+      dest: ../
+      flat: yes
+    loop:
+      - id_rsa.pub
+      - id_rsa
+  when: ansible_hostname=='mysql'
+
+- block:
+  - name: create dir
+    file:
+      path: /root/.ssh
+      state: directory
+
+  - name: add user borg and create ssh key
+    copy:
+      src: ../{{ item }}
+      dest: /root/.ssh/
+      owner: root
+      group: root
+      mode: '0600'
+    loop:
+      - id_rsa.pub
+      - id_rsa
+  when: ansible_hostname=='web'
+
+- name: Copy file to stark borg
+  copy: src={{ item.src }} dest={{ item.dest }}
+  with_items:
+    - { src: 'files/borg-backup.service', dest: '/etc/systemd/system/borg-backup.service' }
+    - { src: 'files/borg-backup.timer', dest: '/etc/systemd/system/borg-backup.timer'}
+
+- name: enable and start timer borg-backup
+  systemd:
+    name: borg-backup.timer
+    enabled: yes
+    state: started
+
+- name: change StrictHostKeyChecking
+  lineinfile:
+    path: /etc/ssh/ssh_config
+    regexp: 'StrictHostKeyChecking'
+    line: StrictHostKeyChecking no
+    state: present
+
+- name: restart sshd
+  systemd:
+    name: sshd
+    state: restarted

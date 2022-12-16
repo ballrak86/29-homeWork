@@ -1,0 +1,7 @@
+---
+# handlers file for mysql
+- name: restart bareos
+  systemd:
+    name: bareos-fd
+    state: restarted
+

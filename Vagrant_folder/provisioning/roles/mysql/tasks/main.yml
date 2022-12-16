@@ -1,0 +1,43 @@
+---
+# tasks file for mysql
+- name: Install mariaDB
+  yum:
+    name: 
+     - mariadb-server
+     - MySQL-python
+    state: present
+
+- name: start mariadb
+  systemd:
+    name: mariadb
+    state: started
+    enabled: yes
+ 
+- name: Create a new database with name 'wordpress'
+  community.mysql.mysql_db:
+    name: wordpress
+    state: present
+
+- name: Create database user
+  mysql_user:
+    name: wordpressuser
+    password: password
+    host: '192.168.0.2'
+    priv: '*.*:ALL'
+    state: present
+
+- name: set root pass
+  mysql_user:
+    name: root
+    password: password
+    check_implicit_admin: true
+
+- name: copy script
+  copy:
+    src: mysql.sh
+    dest: /tmp/mysql.sh
+    mode: '0777'
+
+- include: /home/lx/git/project_work/provisioning/borgClient.yml
+
+- include: /home/lx/git/project_work/provisioning/node_exporterClient.yml
